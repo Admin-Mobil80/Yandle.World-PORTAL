@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Yandle.world</title>
+    <meta name="description" content="Say a handle out loud. Get where you were going." />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FBFBF9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14140F" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yandle" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+      }
+    </script>
+  </body>
+</html>

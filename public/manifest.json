@@ -1,0 +1,16 @@
+{
+  "name": "Yandle.world — speak up to four words, reach anything",
+  "short_name": "Yandle",
+  "description": "Say a handle out loud. Get where you were going.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14140f",
+  "theme_color": "#14140f",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}
