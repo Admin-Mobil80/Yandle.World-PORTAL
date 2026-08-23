@@ -1,12 +1,19 @@
 <script setup>
-defineEmits(['claim', 'go']);
-defineProps({
+import { computed } from 'vue';
+defineEmits(['claim', 'go', 'suggest']);
+const props = defineProps({
   parsed: { type: Object, required: true },
   errors: { type: Object, required: true },
   availability: { type: Object, default: null },
   checking: { type: Boolean, default: false },
   formatPrice: { type: Function, required: true },
+  alreadyHolds: { type: String, default: null },
 });
+
+// Flattened once, so the template stays readable and we do not recompute it
+// on every render tick.
+const suggestionsFor = computed(() =>
+  (props.parsed.unknownWords ?? []).flatMap((w) => props.parsed.suggestions?.[w] ?? []).slice(0, 4));
 </script>
 
 <template>
@@ -22,6 +29,28 @@ defineProps({
       type="error" variant="tonal" density="comfortable"
     >
       Handles are one to four words. That's {{ parsed.words.length }}.
+    </v-alert>
+
+    <!-- Words outside the pool. This branch was missing, so a handle
+         containing an unlisted word rendered NOTHING — the page simply went
+         quiet and looked broken. -->
+    <v-alert
+      v-else-if="parsed.error === errors.NOT_IN_DICTIONARY"
+      type="warning" variant="tonal" density="comfortable"
+    >
+      <p class="mb-2">
+        <template v-for="(w, i) in parsed.unknownWords" :key="w">
+          <code>{{ w }}</code><span v-if="i < parsed.unknownWords.length - 1">, </span>
+        </template>
+        {{ parsed.unknownWords.length > 1 ? ' are not' : ' is not' }} in the word list.
+      </p>
+      <div v-if="suggestionsFor.length" class="d-flex align-center ga-1 flex-wrap">
+        <span class="text-caption">Try</span>
+        <v-chip
+          v-for="w in suggestionsFor" :key="w"
+          size="small" variant="outlined" @click="$emit('suggest', w)"
+        >{{ w }}</v-chip>
+      </div>
     </v-alert>
 
     <v-card v-else-if="parsed.valid" variant="tonal" :color="availability?.available === false ? 'error' : 'success'">
@@ -51,8 +80,13 @@ defineProps({
           <template v-else-if="availability?.available === true">
             <v-icon icon="mdi-check-circle" size="18" />
             <span class="text-body-2 font-weight-medium">Available</span>
-            <v-btn class="ml-auto" color="success" variant="flat" size="small" @click="$emit('claim')">
-              Hold it free for {{ parsed.tier.holdLabel }}
+            <v-btn
+              class="ml-auto" color="success" variant="flat" size="small"
+              :disabled="!!alreadyHolds"
+              :title="alreadyHolds ? `You already have ${alreadyHolds}` : ''"
+              @click="$emit('claim')"
+            >
+              {{ alreadyHolds ? 'One handle per account' : `Hold it free for ${parsed.tier.holdLabel}` }}
             </v-btn>
           </template>
           <template v-else-if="availability?.available === false">

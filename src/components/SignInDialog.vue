@@ -74,7 +74,10 @@ async function verify() {
 
         <template v-else>
           <p class="text-body-2 mb-4">Code sent to <strong>{{ challenge.maskedEmail }}</strong></p>
-          <v-otp-input v-model="code" length="6" type="number" :disabled="busy" class="mb-4" @finish="verify" />
+          <v-otp-input
+            v-model="code" length="6" type="number" autofocus
+            :disabled="busy" class="mb-4" @finish="verify"
+          />
           <v-btn color="primary" block size="large" :disabled="!codeValid" :loading="busy" @click="verify">
             Continue
           </v-btn>

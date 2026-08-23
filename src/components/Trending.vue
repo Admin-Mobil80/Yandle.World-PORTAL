@@ -2,51 +2,101 @@
 import { onMounted, ref } from 'vue';
 
 /**
- * Most-visited handles.
+ * Ranked "most visited" board.
  *
- * Public and unauthenticated, so it fetches directly rather than through the
- * command API. Renders nothing at all when empty — a "Top handles" heading
- * over an empty box on a new platform advertises that nobody is using it.
+ * A ranked list rather than a bag of chips: rank is the thing that makes a
+ * leaderboard worth looking at twice, and it gives owners a reason to share
+ * their handle. Rows are whole-card links so the tap target is the row, not a
+ * word.
  */
 const items = ref([]);
+const stats = ref(null);
+const emit = defineEmits(['stats']);
 
 onMounted(async () => {
   try {
     const res = await fetch('/api/trending');
     const body = await res.json();
     items.value = body?.data?.items ?? [];
+    stats.value = body?.data?.stats ?? null;
+    emit('stats', stats.value);
   } catch {
-    items.value = [];   // silently absent is right for a nice-to-have
+    items.value = [];
   }
 });
+
+const n = (v) => (v ?? 0).toLocaleString();
+const initials = (name, handle) => String(name || handle || '?')
+  .split(/[\s-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 </script>
 
 <template>
-  <div v-if="items.length" class="trending">
-    <div class="text-overline text-medium-emphasis text-center mb-2">Most visited</div>
-    <div class="d-flex flex-wrap justify-center ga-2">
-      <a
-        v-for="t in items" :key="t.handle"
-        :href="`/${t.handle}`" class="pill"
-      >
-        <span class="name">{{ t.handle }}</span>
-        <span class="count">{{ t.clicks.toLocaleString() }}</span>
-      </a>
-    </div>
-  </div>
+  <section v-if="items.length" class="board">
+    <h2 class="title">Most visited</h2>
+
+    <a
+      v-for="(t, i) in items" :key="t.handle"
+      :href="`/${t.handle}`" class="row" :class="{ top: i === 0 }"
+    >
+      <span class="rank" :class="`r${i + 1}`">#{{ i + 1 }}</span>
+
+      <img v-if="t.logo" :src="t.logo" :alt="t.name || t.handle" class="avatar">
+      <span v-else class="avatar ph">{{ initials(t.name, t.handle) }}</span>
+
+      <span class="body">
+        <span class="name">{{ t.name || t.handle }}</span>
+        <span class="handle">yandle.world/{{ t.handle }}</span>
+        <span v-if="t.description" class="desc">{{ t.description }}</span>
+        <span v-if="t.location" class="loc">{{ t.location }}</span>
+      </span>
+
+      <span class="clicks"><strong>{{ n(t.clicks) }}</strong><span class="lbl">visits</span></span>
+    </a>
+  </section>
 </template>
 
 <style scoped>
-.trending { margin-top: 2.5rem; }
-.pill {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 999px;
-  padding: 0.25rem 0.7rem; text-decoration: none;
-  color: rgb(var(--v-theme-on-surface)); font-size: 0.85rem;
+.board { margin-top: 3rem; }
+.title {
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .08em;
+  opacity: .55; font-weight: 600; text-align: center; margin: 0 0 .9rem;
 }
-.pill:hover { border-color: rgb(var(--v-theme-primary)); }
-.count {
-  font-size: 0.75rem; opacity: 0.6;
-  font-variant-numeric: tabular-nums;
+.row {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .8rem .9rem; margin-bottom: .5rem;
+  border: 1px solid rgba(128,128,128,.22); border-radius: 14px;
+  text-decoration: none; color: inherit; transition: border-color .15s, transform .15s;
 }
+.row:hover { border-color: rgb(var(--v-theme-primary)); transform: translateY(-1px); }
+/* Only the leader gets tinted — tint everything and nothing stands out. */
+.row.top { background: rgba(180,69,31,.06); border-color: rgba(180,69,31,.3); }
+
+.rank {
+  flex: 0 0 auto; font-size: .72rem; font-weight: 700;
+  padding: .15rem .45rem; border-radius: 999px;
+  background: rgba(128,128,128,.15); font-variant-numeric: tabular-nums;
+}
+.rank.r1 { background: rgb(var(--v-theme-primary)); color: #fff; }
+
+.avatar {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; object-fit: cover;
+  border: 1px solid rgba(128,128,128,.2);
+}
+.avatar.ph {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(128,128,128,.12); font-weight: 700; font-size: .82rem; letter-spacing: -.01em;
+}
+
+.body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.name { font-weight: 600; font-size: .95rem; line-height: 1.25; }
+.handle { font-size: .74rem; opacity: .55; }
+.desc {
+  font-size: .82rem; opacity: .8; margin-top: .2rem;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.loc { font-size: .72rem; opacity: .5; margin-top: .15rem; }
+
+.clicks { flex: 0 0 auto; text-align: right; line-height: 1.15; }
+.clicks strong { display: block; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.clicks .lbl { font-size: .68rem; opacity: .5; }
 </style>

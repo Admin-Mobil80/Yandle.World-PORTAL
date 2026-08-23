@@ -19,18 +19,18 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:slots']);
 
-// v-autocomplete wants a flat list; subheaders give it the category structure
-// back so browsing 100 words is not a wall of text.
-const items = computed(() => {
-  const out = [];
-  for (const [category, words] of Object.entries(props.config.categories || {})) {
-    out.push({ type: 'subheader', title: category.toUpperCase() });
-    for (const word of [...words].sort()) {
-      out.push({ value: word, title: word });
-    }
-  }
-  return out;
-});
+/**
+ * One flat, alphabetical list.
+ *
+ * Category headers ("OBJECTS", "LIFE") were internal taxonomy leaking into
+ * the UI — nobody picking a word thinks in those terms, and they made the
+ * list longer to scan for no benefit. Alphabetical is what someone hunting
+ * for a specific word actually needs.
+ */
+const items = computed(() =>
+  [...(props.config.words ?? [])]
+    .sort((a, b) => a.localeCompare(b))
+    .map((word) => ({ value: word, title: word })));
 
 const canAdd = computed(() => props.slots.length < props.maxWords);
 const filled = computed(() => props.slots.filter(Boolean).length);
@@ -64,15 +64,6 @@ function removeSlot(i) {
         :menu-props="{ maxHeight: 340 }"
         @update:model-value="setSlot(i, $event)"
       >
-        <template #item="{ props: itemProps, item }">
-          <v-list-subheader v-if="item.raw.type === 'subheader'" class="text-caption">
-            {{ item.raw.title }}
-          </v-list-subheader>
-          <v-list-item v-else v-bind="itemProps" :title="undefined">
-            <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
-          </v-list-item>
-        </template>
-
         <template #selection="{ item }">
           {{ item.value }}
         </template>
