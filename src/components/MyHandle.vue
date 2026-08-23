@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { api } from '../lib/api.js';
+import CopyLink from './CopyLink.vue';
 
 /**
  * The signed-in user's handle.
@@ -92,19 +93,22 @@ defineExpose({ load });
       <v-card-text>
         <div class="d-flex justify-space-between align-start ga-3 mb-2">
           <div>
-            <div class="text-overline text-medium-emphasis" style="line-height:1">Your handle</div>
-            <p class="text-h6 mb-0">yandle.world/<strong>{{ handle.handle }}</strong></p>
+            <div class="text-overline text-medium-emphasis" style="line-height:1">Your Yandle</div>
+            <p class="text-h6 mb-0 d-flex align-center ga-1">
+              <span>yandle.world/<strong>{{ handle.handle }}</strong></span>
+              <CopyLink :handle="handle.handle" />
+            </p>
           </div>
           <v-chip
             :color="handle.status === 'OWNED' ? 'success' : 'warning'"
             size="small" variant="tonal"
-          >{{ handle.status === 'OWNED' ? 'Yours' : 'On hold' }}</v-chip>
+          >{{ handle.status === 'OWNED' ? 'Claimed' : 'Reserved' }}</v-chip>
         </div>
 
         <p v-if="handle.status === 'RESERVED' && timeLeft" class="text-body-2 mb-3"
            :class="urgent ? 'text-error font-weight-medium' : 'text-medium-emphasis'">
           <v-icon icon="mdi-clock-outline" size="16" class="mr-1" />
-          {{ timeLeft === 'expired' ? 'Your hold has ended' : `${timeLeft} left on your free hold` }}
+          {{ timeLeft === 'expired' ? 'Your hold has ended' : `${timeLeft} left on your reservation` }}
         </p>
         <p v-else-if="handle.status === 'OWNED'" class="text-body-2 text-medium-emphasis mb-3">
           Yours permanently. No renewal, nothing to cancel.
@@ -130,7 +134,7 @@ defineExpose({ load });
                 It returns to the public pool straight away and anyone else can claim it.
               </p>
               <p class="text-body-2 text-medium-emphasis mb-0">
-                You will not be able to re-claim this same handle for a cooldown period,
+                You will not be able to re-claim this same Yandle for a cooldown period,
                 and any traffic pointed at it stops working.
               </p>
             </v-card-text>
@@ -147,7 +151,7 @@ defineExpose({ load });
     <!-- One account, one handle — so an empty state is "you have none yet",
          not "you have no handles matching this filter". -->
     <p v-else class="text-body-2 text-medium-emphasis text-center mb-0">
-      You haven't claimed a handle yet. Pick one above.
+      You haven't claimed a Yandle yet. Pick one above.
     </p>
   </div>
 </template>

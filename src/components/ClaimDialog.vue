@@ -70,7 +70,7 @@ async function claim() {
       <v-card-title class="pt-5 px-6">
         <div class="text-h6">Claim yandle.world/{{ handle }}</div>
         <div v-if="tier" class="text-body-2 text-medium-emphasis mt-1">
-          Free for {{ tier.holdLabel }} — no payment now.
+          Reserved for {{ tier.holdLabel }} — no payment now.
         </div>
       </v-card-title>
 
@@ -113,7 +113,7 @@ async function claim() {
         <v-spacer />
         <v-btn variant="text" :disabled="busy" @click="emit('update:modelValue', false)">Cancel</v-btn>
         <v-btn color="primary" variant="flat" :disabled="!canSubmit" :loading="busy" @click="claim">
-          Hold it free
+          Reserve
         </v-btn>
       </v-card-actions>
     </v-card>

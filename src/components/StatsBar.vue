@@ -5,7 +5,7 @@
  * Sits at the very top rather than at the bottom of the page: the numbers are
  * social proof, and proof that arrives after someone has already decided to
  * leave is worth nothing. Renders only once there is something to show — "0
- * handles claimed" on a new platform is anti-proof.
+ * Yandles claimed" on a new platform is anti-proof.
  */
 defineProps({ stats: { type: Object, default: null } });
 const n = (v) => (v ?? 0).toLocaleString();
@@ -17,10 +17,6 @@ const n = (v) => (v ?? 0).toLocaleString();
     <span><strong>{{ n(stats.claimed) }}</strong> claimed</span>
     <span class="sep">·</span>
     <span><strong>{{ n(stats.redirects) }}</strong> visits sent</span>
-    <template v-if="stats.held">
-      <span class="sep">·</span>
-      <span><strong>{{ n(stats.held) }}</strong> on hold</span>
-    </template>
   </div>
 </template>
 

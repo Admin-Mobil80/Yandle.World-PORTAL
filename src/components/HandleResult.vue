@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import CopyLink from './CopyLink.vue';
 defineEmits(['claim', 'go', 'suggest']);
 const props = defineProps({
   parsed: { type: Object, required: true },
@@ -28,7 +29,7 @@ const suggestionsFor = computed(() =>
       v-else-if="parsed.error === errors.TOO_MANY_WORDS"
       type="error" variant="tonal" density="comfortable"
     >
-      Handles are one to four words. That's {{ parsed.words.length }}.
+      A Yandle is one to four words. That's {{ parsed.words.length }}.
     </v-alert>
 
     <!-- Words outside the pool. This branch was missing, so a handle
@@ -61,8 +62,9 @@ const suggestionsFor = computed(() =>
           </span>
         </div>
 
-        <p class="text-h6 mb-1">
-          yandle.world/<strong>{{ parsed.handle }}</strong>
+        <p class="text-h6 mb-1 d-flex align-center ga-1">
+          <span>yandle.world/<strong>{{ parsed.handle }}</strong></span>
+          <CopyLink :handle="parsed.handle" />
         </p>
 
         <p class="text-body-2 text-medium-emphasis mb-3">
@@ -86,7 +88,7 @@ const suggestionsFor = computed(() =>
               :title="alreadyHolds ? `You already have ${alreadyHolds}` : ''"
               @click="$emit('claim')"
             >
-              {{ alreadyHolds ? 'One handle per account' : `Hold it free for ${parsed.tier.holdLabel}` }}
+              {{ alreadyHolds ? 'One Yandle per account' : `Reserve for ${parsed.tier.holdLabel}` }}
             </v-btn>
           </template>
           <template v-else-if="availability?.available === false">

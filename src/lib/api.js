@@ -61,5 +61,22 @@ export const api = {
   setProfile: (handle, profile) => command('setHandleProfile', { handle, profile }),
   setRedirect: (handle, target_url) => command('setHandleRedirect', { handle, target_url }),
   searchPlaces: (q) => command('searchPlaces', { q }),
+  // Public: transcription is needed before anyone signs in.
+  transcribe: async (blob) => {
+    const buf = await blob.arrayBuffer();
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i += 8192) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    }
+    const res = await fetch('/api/transcribe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ audio: btoa(binary), mime: blob.type }),
+    });
+    const body = await res.json();
+    if (body?.status !== 'SUCCESS') throw new Error(body?.status_message || 'transcription failed');
+    return body.data?.transcript ?? '';
+  },
   reverseGeocode: (lat, lon) => command('reverseGeocode', { lat, lon }),
 };

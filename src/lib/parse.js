@@ -101,3 +101,56 @@ function editDistance(a, b) {
   }
   return prev[b.length];
 }
+
+/**
+ * Snaps a heard word onto the closest word in the pool.
+ *
+ * The recogniser is a general-purpose engine with no idea that only ~120
+ * words exist, so it happily returns "red" or "flag" — real English words
+ * that are not claimable. Every such token used to be dropped, which is why
+ * speaking a handle so often produced nothing.
+ *
+ * Two passes, cheapest first:
+ *   1. Phonetic skeleton — collapses vowel quality and doubled consonants, so
+ *      "gold"/"cold" and "warm"/"worm" land on the same key. This is where
+ *      most mishearings live.
+ *   2. Edit distance, capped — catches "birdd", "flatt", clipped endings.
+ *
+ * Returns null rather than a bad guess when nothing is close. Silently
+ * substituting a distant word would put someone on a handle they never said.
+ */
+export function snapToPool(word, pool) {
+  const w = String(word ?? '').toLowerCase();
+  if (!w) return null;
+  if (pool.includes(w)) return w;
+
+  const key = skeleton(w);
+  const phonetic = pool.filter((p) => skeleton(p) === key);
+  if (phonetic.length === 1) return phonetic[0];
+  // Two pool words sharing a skeleton is a known confusable pair; guessing
+  // between them is exactly the misrouting the product must not do.
+  if (phonetic.length > 1) return null;
+
+  let best = null;
+  let bestDistance = Infinity;
+  for (const p of pool) {
+    const d = editDistance(w, p);
+    if (d < bestDistance) { bestDistance = d; best = p; }
+  }
+  // One edit for short words, two for longer ones. Beyond that it is a
+  // different word, not a mishearing.
+  const limit = w.length <= 4 ? 1 : 2;
+  return bestDistance <= limit ? best : null;
+}
+
+/** Vowel-quality-insensitive skeleton. Mirrors the backend's wordpool.js. */
+function skeleton(word) {
+  return String(word ?? '')
+    .toLowerCase()
+    .replace(/^kn/, 'n')
+    .replace(/^wr/, 'r')
+    .replace(/ck/g, 'k')
+    .replace(/ph/g, 'f')
+    .replace(/[aeiouy]+/g, 'V')
+    .replace(/(.)\1+/g, '$1');
+}
