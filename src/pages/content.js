@@ -157,8 +157,11 @@ offline. We do not use cookies for advertising or cross-site tracking.</p>
 <ul>
 <li><strong>Amazon Web Services</strong> — hosting, database and email delivery, in the United States (us-east-1).</li>
 <li><strong>Paddle</strong> — payment processing and tax, as merchant of record.</li>
-<li><strong>Google Safe Browsing</strong> — we submit destination URLs for malware and phishing checks. Only the URL is sent, never your identity.</li>
 </ul>
+
+<p>Destination URLs are also checked against automated malware and phishing
+databases before they are allowed to redirect. Only the URL is checked, never
+your identity.</p>
 
 <h2>Where your data is held</h2>
 <p>On AWS infrastructure in the United States. If you are in the EEA or UK, that is a

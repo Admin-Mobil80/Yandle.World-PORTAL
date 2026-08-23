@@ -26,7 +26,7 @@ const items = computed(() => {
   for (const [category, words] of Object.entries(props.config.categories || {})) {
     out.push({ type: 'subheader', title: category.toUpperCase() });
     for (const word of [...words].sort()) {
-      out.push({ value: word, title: word, emoji: props.config.emoji?.[word] ?? '' });
+      out.push({ value: word, title: word });
     }
   }
   return out;
@@ -69,13 +69,12 @@ function removeSlot(i) {
             {{ item.raw.title }}
           </v-list-subheader>
           <v-list-item v-else v-bind="itemProps" :title="undefined">
-            <template #prepend><span class="glyph">{{ item.raw.emoji }}</span></template>
             <v-list-item-title>{{ item.raw.title }}</v-list-item-title>
           </v-list-item>
         </template>
 
         <template #selection="{ item }">
-          <span class="glyph mr-1">{{ config.emoji?.[item.value] }}</span>{{ item.value }}
+          {{ item.value }}
         </template>
       </v-autocomplete>
 
@@ -112,5 +111,4 @@ function removeSlot(i) {
 .slot { display: flex; align-items: center; gap: 0.25rem; }
 .slot :deep(.v-input) { flex: 1; }
 .spacer { width: 40px; flex: 0 0 40px; }
-.glyph { font-size: 1.05rem; }
 </style>

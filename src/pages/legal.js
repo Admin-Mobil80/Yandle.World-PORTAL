@@ -10,8 +10,8 @@ export const COMPANY = {
   tradingName: 'Yandle.world',
   legalName: 'Mobil80 Solutions and Services Pvt Ltd',
   addressLines: [
-    'No. 588, Above Polar Bear',
-    'Vidyaranyapura Main Road, HMT Layout',
+    'No. 290, 11th Main, NTI Layout',
+    'Vidyaranyapura',
     'Bangalore 560097',
     'Karnataka, India',
   ],

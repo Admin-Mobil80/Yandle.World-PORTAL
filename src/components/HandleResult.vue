@@ -28,7 +28,7 @@ defineProps({
       <v-card-text>
         <div v-if="parsed.chain.length" class="chain mb-3" aria-hidden="true">
           <span v-for="(link, i) in parsed.chain" :key="`${link.word}-${i}`" class="link">
-            {{ link.emoji }} {{ link.word }}
+            {{ link.word }}
           </span>
         </div>
 
