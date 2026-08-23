@@ -24,7 +24,15 @@ watch(() => props.modelValue, (open) => {
 
 const nameValid = computed(() => name.value.trim().length > 0 && name.value.length <= 60);
 const descValid = computed(() => description.value.length <= 1000);
-const urlValid = computed(() => !websiteUrl.value.trim() || /^https:\/\/\S+\.\S+/.test(websiteUrl.value.trim()));
+// Mirrors the server: a bare domain is fine, dangerous schemes are not.
+const urlValid = computed(() => {
+  const v = websiteUrl.value.trim();
+  if (!v) return true;
+  const scheme = v.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+  if (scheme && scheme !== 'http' && scheme !== 'https') return false;
+  const host = v.replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
+  return host.includes('.') && !host.endsWith('.');
+});
 // E.164 — wa.me accepts nothing else, and a bad number fails silently.
 const waValid = computed(() => !whatsapp.value.trim() || /^\+[1-9]\d{7,14}$/.test(whatsapp.value.replace(/[\s()\-.]/g, '')));
 const canSubmit = computed(() => nameValid.value && descValid.value && urlValid.value && waValid.value && !busy.value);
@@ -81,9 +89,12 @@ async function claim() {
           persistent-hint
         />
         <v-text-field
-          v-model="websiteUrl" label="Website" placeholder="https://example.com"
+          v-model="websiteUrl" label="Website" placeholder="example.com"
           variant="outlined" density="comfortable" class="mb-3"
-          :error="!urlValid" :error-messages="!urlValid ? 'Must start with https://' : ''"
+          :error="!urlValid"
+          :error-messages="!urlValid ? 'That does not look like a website address' : ''"
+          hint="No need to type https:// — we add it."
+          persistent-hint
         />
         <LocationField v-model="location" class="mb-3" />
         <v-text-field
