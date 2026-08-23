@@ -1,4 +1,5 @@
 <script setup>
+defineEmits(['claim', 'go']);
 defineProps({
   parsed: { type: Object, required: true },
   errors: { type: Object, required: true },
@@ -50,13 +51,19 @@ defineProps({
           <template v-else-if="availability?.available === true">
             <v-icon icon="mdi-check-circle" size="18" />
             <span class="text-body-2 font-weight-medium">Available</span>
-            <v-btn class="ml-auto" color="success" variant="flat" size="small">
+            <v-btn class="ml-auto" color="success" variant="flat" size="small" @click="$emit('claim')">
               Hold it free for {{ parsed.tier.holdLabel }}
             </v-btn>
           </template>
           <template v-else-if="availability?.available === false">
-            <v-icon icon="mdi-close-circle" size="18" />
-            <span class="text-body-2 font-weight-medium">Already taken</span>
+            <v-icon icon="mdi-arrow-right-circle" size="18" />
+            <span class="text-body-2 font-weight-medium">Taken — this one is live</span>
+            <!-- A claimed handle is the product working. Offer the visit, not
+                 a dead end. -->
+            <v-btn
+              class="ml-auto" color="primary" variant="flat" size="small"
+              append-icon="mdi-open-in-new" @click="$emit('go')"
+            >Go</v-btn>
           </template>
           <template v-else>
             <span class="text-body-2 text-medium-emphasis">Valid handle</span>

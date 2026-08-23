@@ -5,6 +5,9 @@ import { loadConfig } from './lib/config.js';
 import { SEED } from './lib/seed.js';
 import { useVoice } from './composables/useVoice.js';
 import WordSlots from './components/WordSlots.vue';
+import SignInDialog from './components/SignInDialog.vue';
+import ClaimDialog from './components/ClaimDialog.vue';
+import { getSession, signOut } from './lib/auth.js';
 import HandleResult from './components/HandleResult.vue';
 import YandleWordmark from './components/YandleWordmark.vue';
 
@@ -54,6 +57,27 @@ watch(handle, (h) => {
   }, 350);
 });
 
+const session = ref(getSession());
+const showSignIn = ref(false);
+const showClaim = ref(false);
+const claimed = ref(null);
+
+/** Claiming needs an account; signing in is the first step of it, not a wall. */
+function startClaim() {
+  if (!session.value) { showSignIn.value = true; return; }
+  showClaim.value = true;
+}
+function onSignedIn(next) {
+  session.value = next;
+  showClaim.value = true;   // resume what they were doing
+}
+function onClaimed(h) {
+  claimed.value = h;
+}
+function go() {
+  window.location.assign(`/${parsed.value.handle}`);
+}
+
 function surpriseMe() {
   const pool = config.value.words;
   slots.value = Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]);
@@ -102,12 +126,40 @@ function surpriseMe() {
           :availability="availability"
           :checking="checking"
           :format-price="formatPrice"
+          @claim="startClaim"
+          @go="go"
         />
+
+        <v-alert
+          v-if="claimed" type="success" variant="tonal" density="comfortable" class="mt-4"
+        >
+          <p class="mb-1 font-weight-medium">yandle.world/{{ claimed }} is yours to try.</p>
+          <p class="mb-0 text-body-2">
+            It is held free for now — we will email you before it lapses.
+          </p>
+        </v-alert>
 
         <div class="text-center mt-6">
           <v-btn variant="text" size="small" prepend-icon="mdi-dice-5-outline" @click="surpriseMe">
             Surprise me
           </v-btn>
+        </div>
+
+        <SignInDialog
+          v-model="showSignIn"
+          reason="Claiming a handle needs a verified email. We send a six-digit code."
+          @signed-in="onSignedIn"
+        />
+        <ClaimDialog
+          v-model="showClaim"
+          :handle="parsed.handle"
+          :tier="parsed.tier"
+          @claimed="onClaimed"
+        />
+
+        <div v-if="session" class="text-center mt-6 text-caption text-medium-emphasis">
+          Signed in as {{ session.email }} ·
+          <a href="#" @click.prevent="signOut(); session = null">sign out</a>
         </div>
 
         <footer class="text-center mt-10 text-caption">
