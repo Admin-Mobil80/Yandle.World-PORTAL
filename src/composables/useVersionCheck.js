@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 
 /**
- * Notices when a newer build has been deployed.
+ * Notices when a newer build has been deployed, and what changed.
  *
  * Checks on an interval and whenever the tab regains focus — the common case
  * is a tab left open for hours, which no interval alone catches promptly
@@ -12,6 +12,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
  */
 export function useVersionCheck({ intervalMs = 5 * 60 * 1000 } = {}) {
   const updateAvailable = ref(false);
+  const notes = ref(null);
   let current = null;
   let timer;
 
@@ -20,10 +21,13 @@ export function useVersionCheck({ intervalMs = 5 * 60 * 1000 } = {}) {
     try {
       const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return;
-      const { version } = await res.json();
-      if (!version) return;
-      if (current === null) { current = version; return; }
-      if (version !== current) updateAvailable.value = true;
+      const body = await res.json();
+      if (!body?.version) return;
+      if (current === null) { current = body.version; return; }
+      if (body.version !== current) {
+        notes.value = body.notes ?? null;
+        updateAvailable.value = true;
+      }
     } catch { /* offline or mid-deploy — try again next tick */ }
   }
 
@@ -53,5 +57,5 @@ export function useVersionCheck({ intervalMs = 5 * 60 * 1000 } = {}) {
     document.removeEventListener('visibilitychange', onVisible);
   });
 
-  return { updateAvailable, reload };
+  return { updateAvailable, notes, reload };
 }

@@ -199,6 +199,13 @@ async function surpriseMe() {
             @update:slots="slots = $event"
           />
 
+          <div class="d-flex justify-end mt-1">
+            <v-btn
+              variant="text" size="small" prepend-icon="mdi-auto-fix"
+              :loading="surprising" @click="surpriseMe"
+            >Surprise me</v-btn>
+          </div>
+
           <p v-if="!voice.supported" class="text-caption text-medium-emphasis mt-3 mb-0">
             Voice needs Chrome or Safari. The dropdowns work everywhere.
           </p>
@@ -264,13 +271,6 @@ async function surpriseMe() {
         </div>
 
         <Trending @stats="stats = $event" />
-
-        <div class="text-center mt-6">
-          <v-btn
-            variant="text" size="small" prepend-icon="mdi-auto-fix"
-            :loading="surprising" @click="surpriseMe"
-          >Surprise me</v-btn>
-        </div>
 
         <SignInDialog
           v-model="showSignIn"
