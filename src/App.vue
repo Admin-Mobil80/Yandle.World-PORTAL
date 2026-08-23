@@ -7,26 +7,7 @@ import { useVoice } from './composables/useVoice.js';
 import WordSlots from './components/WordSlots.vue';
 import HandleResult from './components/HandleResult.vue';
 import YandleWordmark from './components/YandleWordmark.vue';
-import PricingPage from './pages/PricingPage.vue';
-import TermsPage from './pages/TermsPage.vue';
-import PrivacyPage from './pages/PrivacyPage.vue';
-import RefundsPage from './pages/RefundsPage.vue';
 
-/**
- * Path-based view switch rather than vue-router.
- *
- * These are four static documents, not an application with navigation state.
- * A router would add a dependency and a history layer to solve a problem that
- * `location.pathname` already answers. CloudFront maps each path to the SPA
- * shell (see infra/hosting.yaml), so a hard load of /terms works.
- */
-const PAGES = {
-  '/pricing': PricingPage,
-  '/terms': TermsPage,
-  '/privacy': PrivacyPage,
-  '/refunds': RefundsPage,
-};
-const staticPage = PAGES[window.location.pathname.replace(/\/$/, '')] ?? null;
 
 const config = ref(SEED);
 const slots = ref([null]);          // one dropdown to start; up to four
@@ -82,9 +63,7 @@ function surpriseMe() {
 <template>
   <v-app>
     <v-main>
-      <component :is="staticPage" v-if="staticPage" />
-
-      <v-container v-else class="page" max-width="580">
+      <v-container class="page" max-width="580">
         <header class="text-center mb-8">
           <YandleWordmark size="large" class="justify-center" />
           <p class="text-medium-emphasis mt-3">Pick up to four words. Reach anything.</p>

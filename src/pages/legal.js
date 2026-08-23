@@ -1,27 +1,29 @@
 /**
  * Company details used across the legal pages.
  *
- * Paddle's review checks that the entity named on the site matches the entity
- * on the account, and that a real postal address and contact route exist.
- * Placeholders below are marked and MUST be filled before submitting —
- * shipping them as-is is what gets an application rejected.
+ * `legalName` is copied verbatim from the Paddle account record. Paddle's
+ * review checks that the entity named on the site matches the entity on the
+ * account, so this string must not be "tidied" — an ampersand where their
+ * record has "and" is the kind of mismatch that fails a review.
  */
 export const COMPANY = {
   tradingName: 'Yandle.world',
-  legalName: 'Mobil80 Technologies',        // TODO: exact registered name
-  address: 'TODO: registered address',       // TODO: full postal address
+  legalName: 'Mobil80 Solutions and Services Pvt Ltd',
+  addressLines: [
+    'No. 588, Above Polar Bear',
+    'Vidyaranyapura Main Road, HMT Layout',
+    'Bangalore 560097',
+    'Karnataka, India',
+  ],
   country: 'India',
-  supportEmail: 'support@yandle.world',
-  legalEmail: 'legal@yandle.world',
-  jurisdiction: 'the courts of Bengaluru, Karnataka, India',  // TODO: confirm
+  // A known-working mailbox beats a pretty one. Paddle's reviewer may email
+  // the address on the site, and support@yandle.world does not exist yet.
+  // Pending confirmation with Jisha/Manoj that this is monitored.
+  supportEmail: 'contactus@mobil80.com',
+  legalEmail: 'contactus@mobil80.com',
+  jurisdiction: 'the courts of Bangalore, Karnataka, India',
   effectiveDate: '23 August 2026',
 };
 
-/** Everything still needing a human decision before Paddle review. */
-export const OPEN_ITEMS = [
-  'Registered legal entity name',
-  'Registered postal address',
-  'Governing-law jurisdiction',
-  'support@ and legal@ mailboxes actually receiving mail',
-  'Review by a lawyer — these are drafted, not advised',
-];
+/** Single-line form, for footers and inline references. */
+export const COMPANY_ADDRESS = COMPANY.addressLines.join(', ');
