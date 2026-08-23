@@ -61,4 +61,5 @@ export const api = {
   setProfile: (handle, profile) => command('setHandleProfile', { handle, profile }),
   setRedirect: (handle, target_url) => command('setHandleRedirect', { handle, target_url }),
   searchPlaces: (q) => command('searchPlaces', { q }),
+  reverseGeocode: (lat, lon) => command('reverseGeocode', { lat, lon }),
 };

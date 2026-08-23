@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { api } from '../lib/api.js';
+import LocationField from './LocationField.vue';
 
 const props = defineProps({
   modelValue: Boolean,
@@ -14,9 +15,6 @@ const description = ref('');
 const websiteUrl = ref('');
 const whatsapp = ref('');
 const location = ref(null);
-const placeQuery = ref('');
-const places = ref([]);
-const searching = ref(false);
 const busy = ref(false);
 const error = ref(null);
 
@@ -24,22 +22,8 @@ watch(() => props.modelValue, (open) => {
   if (open) { error.value = null; }
 });
 
-// Debounced, and only from three characters — every keystroke is a billed
-// Location Service request otherwise.
-let timer;
-watch(placeQuery, (q) => {
-  clearTimeout(timer);
-  if (!q || q.length < 3) { places.value = []; return; }
-  searching.value = true;
-  timer = setTimeout(async () => {
-    try { places.value = (await api.searchPlaces(q)).items ?? []; }
-    catch { places.value = []; }
-    finally { searching.value = false; }
-  }, 400);
-});
-
 const nameValid = computed(() => name.value.trim().length > 0 && name.value.length <= 60);
-const descValid = computed(() => description.value.length <= 160);
+const descValid = computed(() => description.value.length <= 1000);
 const urlValid = computed(() => !websiteUrl.value.trim() || /^https:\/\/\S+\.\S+/.test(websiteUrl.value.trim()));
 // E.164 — wa.me accepts nothing else, and a bad number fails silently.
 const waValid = computed(() => !whatsapp.value.trim() || /^\+[1-9]\d{7,14}$/.test(whatsapp.value.replace(/[\s()\-.]/g, '')));
@@ -53,7 +37,7 @@ async function claim() {
     await api.reserve(props.handle);
     await api.setProfile(props.handle, {
       displayName: name.value.trim(),
-      tagline: description.value.trim() || undefined,
+      description: description.value.trim() || undefined,
       websiteUrl: websiteUrl.value.trim() || undefined,
       whatsapp: whatsapp.value.replace(/[\s()\-.]/g, '') || undefined,
       location: location.value
@@ -89,24 +73,19 @@ async function claim() {
           :error="!!name && !nameValid" class="mb-3" autofocus
         />
         <v-textarea
-          v-model="description" label="Description" rows="2" auto-grow
-          placeholder="Small-batch coffee from a vintage truck."
-          variant="outlined" density="comfortable" counter="160"
+          v-model="description" label="Description" rows="6" auto-grow max-rows="14"
+          placeholder="Who we are, what we do, how we work…"
+          variant="outlined" density="comfortable" counter="1000"
           :error="!descValid" class="mb-3"
+          hint="Line breaks are kept."
+          persistent-hint
         />
         <v-text-field
           v-model="websiteUrl" label="Website" placeholder="https://example.com"
           variant="outlined" density="comfortable" class="mb-3"
           :error="!urlValid" :error-messages="!urlValid ? 'Must start with https://' : ''"
         />
-        <v-autocomplete
-          v-model="location" v-model:search="placeQuery"
-          :items="places" item-title="label" return-object
-          :loading="searching" no-filter clearable
-          label="Location" placeholder="Start typing an address"
-          variant="outlined" density="comfortable" class="mb-3"
-          :no-data-text="placeQuery.length < 3 ? 'Type at least three characters' : 'No matches'"
-        />
+        <LocationField v-model="location" class="mb-3" />
         <v-text-field
           v-model="whatsapp" label="WhatsApp" placeholder="+919845012345"
           variant="outlined" density="comfortable"

@@ -7,6 +7,8 @@ import { useVoice } from './composables/useVoice.js';
 import WordSlots from './components/WordSlots.vue';
 import SignInDialog from './components/SignInDialog.vue';
 import ClaimDialog from './components/ClaimDialog.vue';
+import MyHandle from './components/MyHandle.vue';
+import Trending from './components/Trending.vue';
 import { getSession, signOut } from './lib/auth.js';
 import HandleResult from './components/HandleResult.vue';
 import YandleWordmark from './components/YandleWordmark.vue';
@@ -61,6 +63,7 @@ const session = ref(getSession());
 const showSignIn = ref(false);
 const showClaim = ref(false);
 const claimed = ref(null);
+const myHandle = ref(null);
 
 /** Claiming needs an account; signing in is the first step of it, not a wall. */
 function startClaim() {
@@ -73,14 +76,26 @@ function onSignedIn(next) {
 }
 function onClaimed(h) {
   claimed.value = h;
+  // Refresh rather than optimistically render: the server decides the hold
+  // window and status, and guessing them here would drift.
+  myHandle.value?.load();
 }
 function go() {
   window.location.assign(`/${parsed.value.handle}`);
 }
 
 function surpriseMe() {
+  // Three words, not four: the 3-word tier is the one most people actually
+  // want, and a suggestion should land on something they might claim.
   const pool = config.value.words;
-  slots.value = Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]);
+  const pick = () => pool[Math.floor(Math.random() * pool.length)];
+  const words = [];
+  while (words.length < 3) {
+    const w = pick();
+    // A repeat reads like a bug in a suggestion, even though gold-gold is legal.
+    if (!words.includes(w)) words.push(w);
+  }
+  slots.value = words;
 }
 </script>
 
@@ -130,14 +145,11 @@ function surpriseMe() {
           @go="go"
         />
 
-        <v-alert
-          v-if="claimed" type="success" variant="tonal" density="comfortable" class="mt-4"
-        >
-          <p class="mb-1 font-weight-medium">yandle.world/{{ claimed }} is yours to try.</p>
-          <p class="mb-0 text-body-2">
-            It is held free for now — we will email you before it lapses.
-          </p>
-        </v-alert>
+        <div v-if="session" class="mt-6">
+          <MyHandle ref="myHandle" />
+        </div>
+
+        <Trending />
 
         <div class="text-center mt-6">
           <v-btn variant="text" size="small" prepend-icon="mdi-dice-5-outline" @click="surpriseMe">

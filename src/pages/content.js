@@ -42,7 +42,7 @@ may claim it.</p>
 <ul>
 <li>The handle, for as long as the service operates, with no renewal fee.</li>
 <li>A redirect to any HTTPS address you choose, changeable at any time.</li>
-<li>Or a hosted profile page: logo, headline, a 160-character description and up to four action links.</li>
+<li>Or a hosted profile page: logo, headline, a description of up to 1,000 characters, your location, a WhatsApp link and up to four action links.</li>
 <li>Click counts for your handle.</li>
 </ul>
 
