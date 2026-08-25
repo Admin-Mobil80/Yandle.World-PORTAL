@@ -1,4 +1,5 @@
 <script setup>
+import { currentHost } from '../lib/host.js';
 import { computed } from 'vue';
 import CopyLink from './CopyLink.vue';
 defineEmits(['claim', 'go', 'suggest']);
@@ -9,21 +10,22 @@ const props = defineProps({
   checking: { type: Boolean, default: false },
   formatPrice: { type: Function, required: true },
   alreadyHolds: { type: String, default: null },
+  signedIn: { type: Boolean, default: false },
 });
 
 // Flattened once, so the template stays readable and we do not recompute it
 // on every render tick.
 const suggestionsFor = computed(() =>
   (props.parsed.unknownWords ?? []).flatMap((w) => props.parsed.suggestions?.[w] ?? []).slice(0, 4));
+
+const host = currentHost();
 </script>
 
 <template>
   <div class="result">
-    <div v-if="!parsed.words.length" class="placeholder">
-      <p class="text-body-2 text-medium-emphasis text-center mb-0">
-        Pick a word to see what it costs.
-      </p>
-    </div>
+    <!-- Nothing picked yet. The card below is empty, and a caption saying so
+         only adds a line of text to an already empty screen. -->
+    <div v-if="!parsed.words.length" class="placeholder" />
 
     <v-alert
       v-else-if="parsed.error === errors.TOO_MANY_WORDS"
@@ -54,20 +56,25 @@ const suggestionsFor = computed(() =>
       </div>
     </v-alert>
 
-    <v-card v-else-if="parsed.valid" variant="tonal" :color="availability?.available === false ? 'error' : 'success'">
+    <!-- An outlined card for the holder's case rather than a tonal
+         surface-variant one, which rendered as near-invisible grey-on-grey
+         and made a perfectly normal result look like an error. -->
+    <v-card
+      v-else-if="parsed.valid"
+      :variant="availability?.available === true && alreadyHolds ? 'outlined' : 'tonal'"
+      :color="availability?.available === false
+        ? 'error'
+        : (availability?.available === true && alreadyHolds ? undefined : 'success')"
+    >
       <v-card-text>
-        <div v-if="parsed.chain.length" class="chain mb-3" aria-hidden="true">
-          <span v-for="(link, i) in parsed.chain" :key="`${link.word}-${i}`" class="link">
-            {{ link.word }}
-          </span>
-        </div>
-
         <p class="text-h6 mb-1 d-flex align-center ga-1">
-          <span>yandle.world/<strong>{{ parsed.handle }}</strong></span>
-          <CopyLink :handle="parsed.handle" />
+          <span>{{ host }}/<strong>{{ parsed.handle }}</strong></span>
+          <!-- Nothing to copy yet when signed out: the Yandle is not theirs
+               and the link resolves to nothing. -->
+          <CopyLink v-if="signedIn" :handle="parsed.handle" />
         </p>
 
-        <p class="text-body-2 text-medium-emphasis mb-3">
+        <p v-if="!alreadyHolds" class="text-body-2 text-medium-emphasis mb-3">
           {{ parsed.tier.label }} ·
           {{ formatPrice(parsed.tier.buyoutCents) }} to own ·
           {{ parsed.tier.holdLabel }} free hold
@@ -79,21 +86,28 @@ const suggestionsFor = computed(() =>
             <v-progress-circular indeterminate size="16" width="2" />
             <span class="text-body-2">Checking availability…</span>
           </template>
+          <!-- Free, but this account already holds one. Say that it is
+               free (good news, and true), then explain the one thing
+               standing in the way and how to get past it — rather than
+               "nothing to visit", which reads as a failure and offers no
+               way forward. -->
+          <template v-else-if="availability?.available === true && alreadyHolds">
+            <v-icon icon="mdi-tag-outline" size="18" color="primary" />
+            <span class="text-body-2 font-weight-medium">Free — nobody has claimed it</span>
+          </template>
           <template v-else-if="availability?.available === true">
             <v-icon icon="mdi-check-circle" size="18" />
             <span class="text-body-2 font-weight-medium">Available</span>
             <v-btn
               class="ml-auto" color="success" variant="flat" size="small"
-              :disabled="!!alreadyHolds"
-              :title="alreadyHolds ? `You already have ${alreadyHolds}` : ''"
               @click="$emit('claim')"
-            >
-              {{ alreadyHolds ? 'One Yandle per account' : `Reserve for ${parsed.tier.holdLabel}` }}
-            </v-btn>
+            >Reserve for {{ parsed.tier.holdLabel }}</v-btn>
           </template>
           <template v-else-if="availability?.available === false">
             <v-icon icon="mdi-arrow-right-circle" size="18" />
-            <span class="text-body-2 font-weight-medium">Taken — this one is live</span>
+            <span class="text-body-2 font-weight-medium">
+              {{ alreadyHolds ? 'This one is live' : 'Taken — this one is live' }}
+            </span>
             <!-- A claimed handle is the product working. Offer the visit, not
                  a dead end. -->
             <v-btn
@@ -101,9 +115,31 @@ const suggestionsFor = computed(() =>
               append-icon="mdi-open-in-new" @click="$emit('go')"
             >Go</v-btn>
           </template>
+          <!-- The server has not answered (offline, slow, or it errored).
+               The handle is locally valid, so offer the claim anyway rather
+               than leaving a card with no way forward — reserving re-checks
+               server-side, so an unavailable one still cannot slip through. -->
           <template v-else>
-            <span class="text-body-2 text-medium-emphasis">Valid handle</span>
+            <v-icon icon="mdi-help-circle-outline" size="18" />
+            <span class="text-body-2 text-medium-emphasis">Could not check availability</span>
+            <v-btn
+              v-if="!alreadyHolds"
+              class="ml-auto" color="success" variant="flat" size="small"
+              @click="$emit('claim')"
+            >Reserve for {{ parsed.tier.holdLabel }}</v-btn>
           </template>
+        </div>
+
+        <div
+          v-if="availability?.available === true && alreadyHolds"
+          class="held-note mt-3"
+        >
+          <v-icon icon="mdi-information-outline" size="16" class="mr-1" />
+          <span>
+            One account holds one Yandle, and yours is
+            <strong>{{ alreadyHolds }}</strong>. Release it below to take
+            <strong>{{ parsed.handle }}</strong> instead.
+          </span>
         </div>
 
         <!-- The mishearing guard. Only the server knows which neighbours are
@@ -121,13 +157,11 @@ const suggestionsFor = computed(() =>
 </template>
 
 <style scoped>
-.result { min-height: 8rem; }
-.placeholder { padding-top: 2rem; }
-.chain { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.chain .link {
-  border: 1px solid rgba(128, 128, 128, 0.35);
-  border-radius: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  font-size: 0.82rem;
+.result { min-height: 2rem; }
+.held-note {
+  display: flex; align-items: flex-start;
+  font-size: .82rem; line-height: 1.5; opacity: .85;
+  padding: .6rem .7rem; border-radius: 8px;
+  background: rgba(128, 128, 128, .08);
 }
 </style>

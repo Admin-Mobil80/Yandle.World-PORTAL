@@ -1,3 +1,5 @@
+// Must be first: dependencies call methods older Safari does not have.
+import './compat.js';
 import { createApp } from 'vue';
 import { createVuetify } from 'vuetify';
 import 'vuetify/styles';

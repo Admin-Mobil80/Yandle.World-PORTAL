@@ -12,9 +12,21 @@ const n = (v) => (v ?? 0).toLocaleString();
 </script>
 
 <template>
+  <!--
+    `claimed` from the API counts reserved holds AND paid Yandles. Saying
+    "2 claimed" when both are unpaid free holds contradicts the rest of the
+    product, where Claimed now means paid and Reserved means held. Counted
+    separately, and only shown when there is something in each.
+  -->
   <div v-if="stats?.claimed" class="bar">
     <span class="dot" aria-hidden="true" />
-    <span><strong>{{ n(stats.claimed) }}</strong> claimed</span>
+    <span v-if="stats.owned">
+      <strong>{{ n(stats.owned) }}</strong> claimed
+    </span>
+    <span v-if="stats.owned && stats.held" class="sep">·</span>
+    <span v-if="stats.held">
+      <strong>{{ n(stats.held) }}</strong> reserved
+    </span>
     <span class="sep">·</span>
     <span><strong>{{ n(stats.redirects) }}</strong> visits sent</span>
   </div>

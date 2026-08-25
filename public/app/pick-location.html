@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick your location · Yandle.world</title>
+<!--
+  A standalone map picker, opened in its own window by the claim dialog.
+
+  It exists so we can capture coordinates WITHOUT a geocoding service. There
+  is no address lookup here and no API key anywhere: the tiles come from
+  OpenStreetMap, the pin is dragged by hand, and "use my location" is the
+  browser's own Geolocation API. The only thing sent back to the opener is a
+  latitude and a longitude.
+
+  Google's interactive maps SDK would need a billable API key, which is the
+  thing we are removing — so the interactive picker is Leaflet/OSM. The
+  read-only map on a published profile page stays a keyless Google embed.
+-->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #faf7f2; --fg: #1c1a17; --muted: #6b6560;
+    --line: #e2ddd5; --brand: #b23f16; --card: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141312; --fg:#f0ece6; --muted:#a09a93; --line:#2e2b28; --card:#1c1a18; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg);
+  }
+  header { padding: .9rem 1rem; border-bottom: 1px solid var(--line); background: var(--card); position: relative; }
+  .search { display: flex; gap: .5rem; margin-top: .65rem; }
+  .search input {
+    flex: 1; min-width: 0; font: inherit; font-size: .9rem;
+    padding: .55rem .75rem; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  }
+  .search input:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+  #results {
+    position: absolute; left: 1rem; right: 1rem; top: 100%; z-index: 1000;
+    margin: .25rem 0 0; padding: .25rem; list-style: none; max-height: 15rem;
+    overflow-y: auto; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  }
+  #results li {
+    padding: .55rem .7rem; border-radius: 8px; cursor: pointer; font-size: .85rem;
+  }
+  #results li:hover, #results li:focus { background: rgba(127,127,127,.14); outline: none; }
+  #results li.empty { color: var(--muted); cursor: default; }
+  h1 { margin: 0 0 .15rem; font-size: 1rem; }
+  p  { margin: 0; font-size: .82rem; color: var(--muted); }
+  #map { flex: 1; min-height: 0; }
+  footer {
+    padding: .85rem 1rem; border-top: 1px solid var(--line); background: var(--card);
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+  }
+  .coords {
+    flex: 1; min-width: 11rem; font-size: .8rem; color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  button {
+    font: inherit; font-size: .88rem; padding: .55rem 1rem; border-radius: 10px;
+    border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer;
+  }
+  button:hover { border-color: var(--brand); }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .err { color: var(--brand); font-size: .8rem; padding: 0 1rem .6rem; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Pick your location</h1>
+    <p>Search, or tap the map to move the pin. Only the coordinates are saved.</p>
+    <div class="search">
+      <input
+        id="q" type="search" autocomplete="off" enterkeyhint="search"
+        placeholder="Search a place, area or address">
+      <button type="button" id="go">Search</button>
+    </div>
+    <ul id="results" hidden></ul>
+  </header>
+
+  <div id="map"></div>
+  <div class="err" id="err" hidden></div>
+
+  <footer>
+    <span class="coords" id="coords">No pin yet</span>
+    <button type="button" id="here">Use my location</button>
+    <button type="button" id="cancel">Cancel</button>
+    <button type="button" id="save" class="primary" disabled>Use this location</button>
+  </footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var startLat = parseFloat(params.get('lat'));
+  var startLon = parseFloat(params.get('lon'));
+  var hasStart = isFinite(startLat) && isFinite(startLon);
+
+  // Opened from an existing pin, or a wide view of nowhere in particular.
+  var map = L.map('map').setView(
+    hasStart ? [startLat, startLon] : [20, 0],
+    hasStart ? 16 : 2
+  );
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  var marker = null;
+  var picked = null;
+
+  var coordsEl = document.getElementById('coords');
+  var saveEl = document.getElementById('save');
+  var errEl = document.getElementById('err');
+
+  function showError(msg) {
+    errEl.textContent = msg;
+    errEl.hidden = !msg;
+  }
+
+  function setPin(lat, lon) {
+    // Six decimals is about 11 cm. Storing more is noise, and it makes the
+    // saved value needlessly identifying.
+    picked = { lat: +lat.toFixed(6), lon: +lon.toFixed(6) };
+    if (marker) marker.setLatLng([lat, lon]);
+    else {
+      marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+      marker.on('dragend', function () {
+        var p = marker.getLatLng();
+        setPin(p.lat, p.lng);
+      });
+    }
+    coordsEl.textContent = picked.lat + ', ' + picked.lon;
+    saveEl.disabled = false;
+    showError('');
+  }
+
+  if (hasStart) setPin(startLat, startLon);
+
+  map.on('click', function (e) { setPin(e.latlng.lat, e.latlng.lng); });
+
+  document.getElementById('here').addEventListener('click', function () {
+    if (!navigator.geolocation) return showError('This browser cannot report your location.');
+    showError('');
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Locating…';
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        btn.disabled = false;
+        btn.textContent = 'Use my location';
+        setPin(pos.coords.latitude, pos.coords.longitude);
+        map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+      },
+      function (e) {
+        btn.disabled = false;
+        btn.textContent = 'Use my location';
+        showError(e.code === 1
+          ? 'Location permission was denied. Tap the map to place the pin instead.'
+          : 'Could not get your location. Tap the map to place the pin instead.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  document.getElementById('save').addEventListener('click', function () {
+    if (!picked || !window.opener) return;
+    // Same-origin: this page is served from the portal itself, so the target
+    // origin is pinned rather than '*'. Nothing else can read the message.
+    window.opener.postMessage(
+      { type: 'yandle:location', lat: picked.lat, lon: picked.lon },
+      location.origin
+    );
+    window.close();
+  });
+
+  // ---- Search -----------------------------------------------------------
+  //
+  // Nominatim is OpenStreetMap's own geocoder: free, no API key, no account.
+  // Its usage policy caps you at one request per second and asks that you not
+  // fire a query on every keystroke — so this searches only on Enter or the
+  // button, and refuses to send two requests inside a second.
+  //
+  // This is a way to MOVE THE MAP, nothing more. No result is stored: the
+  // profile still saves only the coordinates of wherever the pin ends up.
+  var qEl = document.getElementById('q');
+  var goEl = document.getElementById('go');
+  var resultsEl = document.getElementById('results');
+  var lastQueryAt = 0;
+  var inFlight = null;
+
+  function closeResults() {
+    resultsEl.hidden = true;
+    resultsEl.innerHTML = '';
+  }
+
+  function renderResults(items) {
+    resultsEl.innerHTML = '';
+    if (!items.length) {
+      var none = document.createElement('li');
+      none.className = 'empty';
+      none.textContent = 'Nothing found. Try a broader search, or tap the map.';
+      resultsEl.appendChild(none);
+      resultsEl.hidden = false;
+      return;
+    }
+    items.forEach(function (r) {
+      var li = document.createElement('li');
+      li.tabIndex = 0;
+      li.textContent = r.display_name;
+      function choose() {
+        var lat = parseFloat(r.lat), lon = parseFloat(r.lon);
+        setPin(lat, lon);
+        // Zoom to the result's own extent when it has one, so a city frames
+        // as a city and a building frames as a building.
+        if (r.boundingbox && r.boundingbox.length === 4) {
+          map.fitBounds([
+            [parseFloat(r.boundingbox[0]), parseFloat(r.boundingbox[2])],
+            [parseFloat(r.boundingbox[1]), parseFloat(r.boundingbox[3])]
+          ], { maxZoom: 17 });
+        } else {
+          map.setView([lat, lon], 17);
+        }
+        closeResults();
+      }
+      li.addEventListener('click', choose);
+      li.addEventListener('keydown', function (e) { if (e.key === 'Enter') choose(); });
+      resultsEl.appendChild(li);
+    });
+    resultsEl.hidden = false;
+  }
+
+  function search() {
+    var q = qEl.value.trim();
+    if (q.length < 3) return showError('Type at least three characters to search.');
+
+    var since = Date.now() - lastQueryAt;
+    if (since < 1000) return;          // one request per second, per policy
+    lastQueryAt = Date.now();
+
+    showError('');
+    goEl.disabled = true;
+    goEl.textContent = 'Searching…';
+
+    if (inFlight) inFlight.abort();
+    inFlight = new AbortController();
+
+    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' +
+          encodeURIComponent(q), { signal: inFlight.signal, headers: { 'Accept': 'application/json' } })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Search is unavailable right now.');
+        return res.json();
+      })
+      .then(function (items) { renderResults(Array.isArray(items) ? items : []); })
+      .catch(function (e) {
+        if (e.name === 'AbortError') return;
+        showError('Could not search just now. Tap the map to place the pin instead.');
+      })
+      .finally(function () {
+        goEl.disabled = false;
+        goEl.textContent = 'Search';
+      });
+  }
+
+  goEl.addEventListener('click', search);
+  qEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); search(); }
+    if (e.key === 'Escape') closeResults();
+  });
+  map.on('click', closeResults);
+
+  document.getElementById('cancel').addEventListener('click', function () { window.close(); });
+})();
+</script>
+</body>
+</html>

@@ -73,7 +73,7 @@ async function verify() {
         </template>
 
         <template v-else>
-          <p class="text-body-2 mb-4">Code sent to <strong>{{ challenge.maskedEmail }}</strong></p>
+          <p class="text-body-2 mb-4">Code sent to <strong>{{ challenge.email }}</strong></p>
           <v-otp-input
             v-model="code" length="6" type="number" autofocus
             :disabled="busy" class="mb-4" @finish="verify"

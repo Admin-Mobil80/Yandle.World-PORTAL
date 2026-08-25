@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { currentHost } from '../lib/host.js';
+import { computed, onMounted, ref } from 'vue';
 
 /**
  * Ranked "most visited" board.
@@ -10,6 +11,11 @@ import { onMounted, ref } from 'vue';
  * word.
  */
 const items = ref([]);
+// Ten is what the landing page paints. The API sends up to a hundred, so the
+// rest are one tap away rather than a second request — and nobody who paid
+// for a Yandle is unreachable from the board.
+const PREVIEW = 10;
+const expanded = ref(false);
 const stats = ref(null);
 const emit = defineEmits(['stats']);
 
@@ -25,17 +31,37 @@ onMounted(async () => {
   }
 });
 
+const shown = computed(() => (expanded.value ? items.value : items.value.slice(0, PREVIEW)));
+const hidden = computed(() => Math.max(0, items.value.length - PREVIEW));
+
 const n = (v) => (v ?? 0).toLocaleString();
 const initials = (name, handle) => String(name || handle || '?')
   .split(/[\s-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+const host = currentHost();
 </script>
 
 <template>
-  <section v-if="items.length" class="board">
-    <h2 class="title">Most visited</h2>
+  <!-- Shown even when empty. Hiding it made the board invisible until
+       somebody had already claimed and been visited — so nobody ever saw the
+       thing that gives them a reason to claim one. An empty leaderboard with
+       a first place going spare is the better invitation. -->
+  <section class="board">
+    <h2 class="title">Most visited <span class="scope">(amongst claimed Yandles only)</span></h2>
+
+    <div v-if="!items.length" class="empty">
+      <div class="empty-rank">#1</div>
+      <div>
+        <p class="empty-title">This spot is open</p>
+        <p class="empty-sub">
+          Claimed Yandles are ranked here by how many people visit them.
+          Nobody is on the board yet.
+        </p>
+      </div>
+    </div>
 
     <a
-      v-for="(t, i) in items" :key="t.handle"
+      v-for="(t, i) in shown" :key="t.handle"
       :href="`/${t.handle}`" class="row" :class="{ top: i === 0 }"
     >
       <span class="rank" :class="`r${i + 1}`">#{{ i + 1 }}</span>
@@ -45,17 +71,41 @@ const initials = (name, handle) => String(name || handle || '?')
 
       <span class="body">
         <span class="name">{{ t.name || t.handle }}</span>
-        <span class="handle">yandle.world/{{ t.handle }}</span>
+        <span class="handle">{{ host }}/{{ t.handle }}</span>
         <span v-if="t.description" class="desc">{{ t.description }}</span>
         <span v-if="t.location" class="loc">{{ t.location }}</span>
       </span>
 
       <span class="clicks"><strong>{{ n(t.clicks) }}</strong><span class="lbl">visits</span></span>
     </a>
+
+    <div v-if="hidden" class="text-center mt-2">
+      <v-btn variant="text" size="small"
+             :prepend-icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+             @click="expanded = !expanded">
+        {{ expanded ? 'Show top 10' : `Show all ${items.length}` }}
+      </v-btn>
+    </div>
   </section>
 </template>
 
 <style scoped>
+.empty {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.1rem 1rem; border: 1px dashed rgba(128, 128, 128, .4);
+  border-radius: 14px;
+}
+.empty-rank {
+  flex: none; width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(128, 128, 128, .12); color: rgb(var(--v-theme-primary));
+  font-weight: 700; font-size: .82rem;
+}
+.empty-title { margin: 0; font-weight: 600; font-size: .95rem; }
+.empty-sub { margin: .15rem 0 0; font-size: .82rem; opacity: .7; line-height: 1.45; }
+
+.scope { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .7; }
+
 .board { margin-top: 3rem; }
 .title {
   font-size: .75rem; text-transform: uppercase; letter-spacing: .08em;

@@ -53,9 +53,8 @@ so you can be certain before you pay. See the
 <a href="/refunds">refund policy</a> for the exceptions we always honour.</p>
 
 <h2>Tax</h2>
-<p>Prices are shown excluding tax. Any VAT, GST or sales tax due in your country is
-calculated and added at checkout by our payment provider, who is the seller of record
-for the transaction.</p>
+<p>Prices are shown excluding tax. Any GST, VAT or sales tax due is calculated and added
+at checkout. ${COMPANY.legalName} is the seller of record for the transaction.</p>
 `,
   },
 
@@ -145,9 +144,9 @@ why, and what you can ask us to do about it.</p>
 <p>We do not use advertising trackers and we do not sell data to anyone.</p>
 
 <h2>What we do not collect</h2>
-<p>We never ask for or store payment card details. Payments are handled entirely by our
-payment provider, who acts as seller of record; we receive only confirmation that a payment
-succeeded.</p>
+<p>We never ask for or store payment card details. Card details are entered on our payment
+provider's own checkout and never reach our servers; we receive only confirmation that a
+payment succeeded, and a reference for it.</p>
 
 <h2>Cookies and local storage</h2>
 <p>We use browser storage to keep you signed in and to cache the word list so the site works
@@ -155,18 +154,21 @@ offline. We do not use cookies for advertising or cross-site tracking.</p>
 
 <h2>Who else processes your data</h2>
 <ul>
-<li><strong>Amazon Web Services</strong> — hosting, database and email delivery, in the United States (us-east-1).</li>
-<li><strong>Paddle</strong> — payment processing and tax, as merchant of record.</li>
+<li><strong>A cloud infrastructure provider</strong> — hosting, database and email delivery.</li>
+<li><strong>A payment provider</strong> — payment processing and, where applicable, tax.</li>
+<li><strong>A URL reputation service</strong> — checking destination links for malware and phishing.</li>
 </ul>
+<p>We will name any of these on request. Write to
+<a href="mailto:${COMPANY.supportEmail}">${COMPANY.supportEmail}</a>.</p>
 
 <p>Destination URLs are also checked against automated malware and phishing
 databases before they are allowed to redirect. Only the URL is checked, never
 your identity.</p>
 
 <h2>Where your data is held</h2>
-<p>On AWS infrastructure in the United States. If you are in the EEA or UK, that is a
-transfer outside your region; we rely on standard contractual clauses in our agreement
-with AWS.</p>
+<p>On cloud infrastructure located in the United States. If you are in the EEA or UK, that
+is a transfer outside your region; we rely on standard contractual clauses in our agreement
+with that provider.</p>
 
 <h2>How long we keep it</h2>
 <ul>

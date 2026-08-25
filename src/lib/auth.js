@@ -44,6 +44,19 @@ export async function requestCode(email) {
     const normalized = String(email || '').trim().toLowerCase();
     if (!normalized) throw new Error('Enter your email address.');
 
+    // Make sure the account exists first. Cognito runs the custom-auth
+    // triggers for an unknown username against a dummy user with no
+    // attributes, so the OTP would be queued with no recipient and silently
+    // dropped — the code box would appear and no mail would ever arrive.
+    const ready = await fetch('/api/signin-start', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: normalized }),
+    });
+    if (!ready.ok) throw new Error('Could not start sign in. Try again shortly.');
+    const readyBody = await ready.json().catch(() => ({}));
+    if (readyBody.status === 'ERROR') throw new Error(readyBody.error || 'Could not start sign in.');
+
     const result = await idp('InitiateAuth', {
         AuthFlow: 'CUSTOM_AUTH',
         ClientId: CLIENT_ID,
@@ -52,10 +65,11 @@ export async function requestCode(email) {
 
     return {
         session: result.Session,
+        // The address they just typed, not Cognito's masked echo of it.
+        // "ra**@mobil80.com" hides nothing from the person who entered it and
+        // makes a typo impossible to spot, which is the one thing this line
+        // is actually for.
         email: normalized,
-        // Cognito's own masked address, so the UI can say where it went
-        // without us re-deriving it.
-        maskedEmail: result.ChallengeParameters?.email || normalized,
         expiresMinutes: Number(result.ChallengeParameters?.expiresMinutes || 10),
     };
 }

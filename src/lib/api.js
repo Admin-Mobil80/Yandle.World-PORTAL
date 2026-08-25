@@ -56,11 +56,16 @@ export const api = {
     return body?.data ?? null;
   },
   reserve: (handle) => command('reserveHandle', { handle }),
-  release: (handle) => command('releaseHandle', { handle }),
+  release: (handle, confirmForfeit = false) =>
+    command('releaseHandle', { handle, confirm_forfeit: confirmForfeit }),
   myHandles: () => command('listMyHandles'),
   setProfile: (handle, profile) => command('setHandleProfile', { handle, profile }),
+  startCheckout: (handle) => command('startCheckout', { handle }),
+  uploadLogo: (handle, image) => command('uploadLogo', { handle, image }),
   setRedirect: (handle, target_url) => command('setHandleRedirect', { handle, target_url }),
-  searchPlaces: (q) => command('searchPlaces', { q }),
+  initiateTransfer: (handle, to_contact) => command('initiateTransfer', { handle, to_contact }),
+  acceptTransfer: (handle, token) => command('acceptTransfer', { handle, token }),
+  cancelTransfer: (handle) => command('cancelTransfer', { handle }),
   // Public: transcription is needed before anyone signs in.
   transcribe: async (blob) => {
     const buf = await blob.arrayBuffer();
@@ -78,5 +83,4 @@ export const api = {
     if (body?.status !== 'SUCCESS') throw new Error(body?.status_message || 'transcription failed');
     return body.data?.transcript ?? '';
   },
-  reverseGeocode: (lat, lon) => command('reverseGeocode', { lat, lon }),
 };

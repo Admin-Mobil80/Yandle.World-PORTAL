@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { handleUrl } from '../lib/host.js';
 
 /**
  * Copy-to-clipboard for a Yandle URL.
@@ -13,7 +14,7 @@ const copied = ref(false);
 const failed = ref(false);
 
 async function copy() {
-  const url = `https://yandle.world/${props.handle}`;
+  const url = handleUrl(props.handle);
   failed.value = false;
   try {
     await navigator.clipboard.writeText(url);
