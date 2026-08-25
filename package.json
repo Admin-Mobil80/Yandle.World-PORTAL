@@ -9,7 +9,6 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@yandle/dictionary": "github:Admin-Mobil80/Yandle.World-DICTIONARY#v0.1.0",
     "vue": "^3.5.13",
     "vuetify": "^3.7.6"
   },
